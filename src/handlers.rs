@@ -6,6 +6,8 @@ use axum::{
 };
 use crate::{db::Db, models::*}; // Import from models 
 
+use crate::error::AppError;
+
 // -- Basic Handlers --
 pub async fn home() -> &'static str {
     "Welcome to the Home Page!"
@@ -16,87 +18,46 @@ pub async fn hello(Path(name): Path<String>) -> String {
 }
 
 // -- Person Handlers --
-pub async fn add_person(State(pool): State<Db>, Json(person): Json<Person>,) -> impl IntoResponse {
-    let result = sqlx::query!(
-        "INSERT INTO persons (name, age) VALUES (?, ?)",
+pub async fn add_person(State(pool): State<Db>, Json(person): Json<Person>,) -> Result <impl IntoResponse, AppError> {
+    person.validate().map_err(AppError::InvalidData)?;
+    
+    sqlx::query!("INSERT INTO persons (name, age) VALUES (?, ?)", 
         person.name,
-        person.age
+        person.age)
+        .execute(&pool)
+        .await?;
+    Ok(StatusCode::CREATED)
+}
+
+pub async fn get_all_persons(State(pool): State<Db>) -> Result<Json<Vec<Person>>, AppError> {
+    let people = sqlx::query_as!(Person, "SELECT id as \"id!\", name as \"name!\", age as \"age!\" FROM persons")
+        .fetch_all(&pool)
+        .await?;
+    Ok(Json(people))
+}
+
+
+pub async fn update_person(State(pool): State<Db>, Path(id): Path<i64>, Json(update): Json<PersonUpdate>,) -> Result <impl IntoResponse, AppError> {
+    sqlx::query!(
+    "UPDATE persons SET name = COALESCE(?, name), age = COALESCE(?, age) WHERE id = ?",
+        update.name,
+        update.age,
+        id
     )
     .execute(&pool)
-    .await;
-
-    match result {
-        Ok(_) => (
-            StatusCode::CREATED,
-            Json(PersonResponse {
-                status: format!("Person '{}' added successfully", person.name), 
-                name: person.name,
-                age: person.age
-            })
-        ).into_response(),
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response(),
-    }
+    .await?;
+    Ok(StatusCode::OK)
 }
 
-pub async fn get_all_persons(State(pool): State<Db>) -> impl IntoResponse {
-    let result = sqlx::query_as!(Person, "SELECT name as \"name!\", age as \"age!\" FROM persons")
-        .fetch_all(&pool)
-        .await;
-
-    match result {
-        Ok(people) => Json(people).into_response(),
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response(),
-    }
-}
-
-pub async fn get_person(State(pool): State<Db>, Path(name): Path<String>,) -> impl IntoResponse {
-    let result = sqlx::query_as!(Person, "SELECT name as \"name!\", age as \"age!\" FROM persons WHERE name = ?", name)
-        .fetch_optional(&pool)
-        .await;
-
-    match result {
-        Ok(Some(person)) => Json(person).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND, "Person not found").into_response(),
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response(),
-    }
-}
-
-pub async fn update_person(State(pool): State<Db>, Path(name): Path<String>, Json(update): Json<PersonUpdate>,) -> impl IntoResponse {
-    let current = sqlx::query_as!(Person, "SELECT name as \"name!\", age as \"age!\" FROM persons WHERE name = ?", name)
-        .fetch_optional(&pool)
-        .await;
-
-    if let Ok(Some(mut person)) = current {
-        if let Some(new_name) = update.name {person.name = new_name;}
-        if let Some(new_age) = update.age {person.age = new_age;}
-
-        let update_result = sqlx::query!(
-            "UPDATE persons SET name = ?, age = ? WHERE name = ?",
-            person.name,
-            person.age,
-            name
-        )
+pub async fn delete_person(State(pool): State<Db>, Path(id): Path<i64>) -> Result <impl IntoResponse, AppError> {
+    let result = sqlx::query!("DELETE FROM persons WHERE id = ?", id)
         .execute(&pool)
-        .await;
+        .await?;
 
-        return match update_result {
-            Ok(_) => Json(person).into_response(),
-            Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Update failed").into_response(),
-        };
+    if result.rows_affected() == 0 {
+        return Err(AppError::NotFound);
     }
-    (StatusCode::NOT_FOUND, "Person not found").into_response()
-}
-
-pub async fn delete_person(State(pool): State<Db>, Path(name): Path<String>) -> impl IntoResponse {
-    let result = sqlx::query!("DELETE FROM persons WHERE name = ?", name)
-        .execute(&pool)
-        .await;
-
-    match result {
-        Ok(res) if res.rows_affected() > 0 => StatusCode::NO_CONTENT.into_response(),
-        Ok(_) => (StatusCode::NOT_ACCEPTABLE, "Person not found").into_response(),
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response(),
-    }
+    Ok(StatusCode::NO_CONTENT)
 }
 
 // --- Math Handler ---

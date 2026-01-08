@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS persons;
+
+CREATE TABLE persons (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    age INTEGER NOT NULL
+)
