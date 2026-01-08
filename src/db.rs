@@ -1,9 +1,10 @@
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use crate::models::Person; // Import models
+use sqlx::sqlite::SqlitePool;
+pub type Db = SqlitePool;
 
-pub type Db = Arc<Mutex<Vec<Person>>>;
+pub async fn init_db() -> Db {
+    let database_url = "sqlite:data.db";
 
-pub fn init_db() -> Db {
-    Arc::new(Mutex::new(Vec::new()))
+    SqlitePool::connect(database_url)
+        .await
+        .expect("Failed to connect to database")
 }

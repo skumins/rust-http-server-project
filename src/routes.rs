@@ -4,9 +4,7 @@ use axum::{
 };
 use crate::{db::init_db, handlers}; // Import handlers and db init
 
-pub fn create_router() -> Router {
-    let db = init_db();
-
+pub fn create_router(db: crate::db::Db) -> Router {
     Router::new()
         .route("/", get(handlers::home))
         .route("/hello/{name}", get(handlers::hello))

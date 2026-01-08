@@ -3,20 +3,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Person {
     pub name: String,
-    pub age: u8,
+    pub age: i64,
 }
 
 #[derive(Serialize, Debug)]
 pub struct PersonResponse {
     pub status: String,
     pub name: String,
-    pub age: u8,
+    pub age: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PersonUpdate {
     pub name: Option<String>,
-    pub age: Option<u8>,
+    pub age: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

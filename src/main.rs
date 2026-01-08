@@ -9,8 +9,9 @@ mod routes;
 
 #[tokio::main]
 async fn main() {
+    let db = db::init_db().await;
     // Creating router through function in routes.rs
-    let app = routes::create_router();
+    let app = routes::create_router(db);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Server running at http://{}", addr);
