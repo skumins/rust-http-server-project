@@ -8,15 +8,6 @@ use crate::{db::Db, models::*}; // Import from models
 
 use crate::error::AppError;
 
-// -- Basic Handlers --
-pub async fn home() -> &'static str {
-    "Welcome to the Home Page!"
-}
-
-pub async fn hello(Path(name): Path<String>) -> String {
-    format!("Hello, {}!", name)
-}
-
 // -- Person Handlers --
 pub async fn add_person(State(pool): State<Db>, Json(person): Json<Person>,) -> Result <impl IntoResponse, AppError> {
     person.validate().map_err(AppError::InvalidData)?;

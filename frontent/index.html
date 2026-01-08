@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust server</title>
+    <style>
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>List of members</h2>
+
+        <div class="form-group">
+            <input id="name" placeholder="Name">
+            <input id="age" type="number" placeholder="Age">
+            <button class="btn-add" onclick="savePerson()">Save</button>
+        </div>
+
+        <table id="persons-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        let editingID = null;
+
+        async function loadPerson() {
+            const response = await fetch('/persons');
+            const persons = await response.json();
+            const tbody = document.querySelector('#persons-table tbody');
+            tbody.innerHTML = persons.map(p => `
+                <tr>
+                    <td>${p.id}</td>
+                    <td>${p.name}</td>
+                    <td>${p.age}</td>
+                    <td>
+                        <button class="btn-edit" onclick="editPerson(${p.id}, '${p.name}', ${p.age})">Edit</button>
+                        <button claass="btn-delete" onclick="deletePerson(${p.id})">Delete</button>
+                    </td>
+                </tr>
+
+            `).join('');
+        }
+
+        async function savePerson() {
+            const name = document.getElementById('nameInput').value;
+            const age = parseInt(document.getElementById('ageInput').value);
+
+            const url = editingID ? `/person/${editingID}` : '/person';
+            const method = editingID ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, age})
+            });
+
+            if (response.ok) {
+                editingID = null;
+                document.getElementById('nameInput').value = '';
+                document.getElementById('ageInput').value = '';
+                loadPerson();
+            } else{
+                const err = await response.json();
+                alert("Error: " + err.error);
+            }
+        }
+
+        function editMode(id, name, age) {
+            editingID = id;
+            document.getElementById('nameInput').value = namt;
+            document.getElementById('ageInput').value = age;
+            document.getElementById('nameInput').focus();
+        }
+
+        async function deletePerson() {
+            if (!confirm('Delete?')) return;
+            await fetch(`/person/${id}`, {method: 'DELETE' });
+            loadPerson();
+        }
+        loadPerson();
+    </script>
+</body>
+</html>

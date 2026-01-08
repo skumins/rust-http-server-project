@@ -6,7 +6,6 @@ use crate::{db::init_db, handlers}; // Import handlers and db init
 
 pub fn create_router(db: crate::db::Db) -> Router {
     Router::new()
-        .route("/", get(handlers::home))
         .route("/person", post(handlers::add_person))
         .route("/persons", get(handlers::get_all_persons))
         .route("/person/{id}", put(handlers::update_person))
