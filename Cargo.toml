@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-axum = "0.8.7"
+axum = "0.7"
 tokio = { version = "1", features = ["full"]}
 serde = {version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "macros"] }
-tower-http = { version = "0.6.4", features = ["fs"] }
+tower-http = { version = "0.6.4", features = ["fs", "cors"] }
