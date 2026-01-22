@@ -1,5 +1,5 @@
 use axum::{
-    routing::{delete, get, post, put},
+    routing::{get, post, MethodRouter},
     Router,
 };
 use tower_http::cors::{Any, CorsLayer};
@@ -11,11 +11,15 @@ pub fn create_router(db: crate::db::Db) -> Router {
         .allow_methods(Any)
         .allow_headers(Any);
 
+    let update_delete_route = MethodRouter::new()
+        .put(handlers::update_person)
+        .delete(handlers::delete_person);
+
     Router::new()
+        .route("/person/update/:id", update_delete_route.clone())
+        .route("/person/delete/:id", update_delete_route)
         .route("/person", post(handlers::add_person))
         .route("/persons", get(handlers::get_all_persons))
-        .route("/person/{id}", put(handlers::update_person))
-        .route("/person/{id}", delete(handlers::delete_person))
         .route("/calculate", post(handlers::add_number))
         .layer(cors)
         .with_state(db)

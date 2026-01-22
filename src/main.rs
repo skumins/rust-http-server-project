@@ -1,7 +1,6 @@
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use axum::Router;
-use tower_http::services::ServeDir;
 
 // declare modules
 mod db;
@@ -17,11 +16,8 @@ async fn main() {
     // Creating router through function in routes.rs
     let api_router = routes::create_router(db);
 
-    let static_router = Router::new()
-    .nest_service("/", ServeDir::new("frontent"));
-
     let app = Router::new()
-    .nest("/api", api_router).merge(static_router);
+        .nest("/api", api_router);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Server running at http://{}", addr);

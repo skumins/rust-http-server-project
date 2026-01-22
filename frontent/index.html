@@ -98,7 +98,7 @@
                 return;
             }
 
-            const url = editingID ? `/api/person/${editingID}` : '/api/person';
+            const url = editingID ? `/api/person/update/${editingID}` : '/api/person';
             const method = editingID ? 'PUT' : 'POST';
 
             try {
@@ -107,15 +107,18 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({name, age})
                 });
+
+                const responseData = await response.json();
             
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || 'Request failed');
+                if (response.ok) {
+                    editingID = null;
+                    document.getElementById('nameInput').value = '';
+                    document.getElementById('ageInput').value = '';
+                    loadPerson();
+                    console.log(responseData.message || 'Operation successful');
+                } else {
+                    alert("Error: " + (responseData.error || 'Operation failed') );
                 }
-                editingID = null;
-                document.getElementById('nameInput').value = '';
-                document.getElementById('ageInput').value = '';
-                loadPerson();
             } catch (error) {
                 console.error('Error saving person:', error);
                 alert("Error: " + error.message);
@@ -133,10 +136,10 @@
             if (!confirm('Delete?')) return;
 
             try {
-                const response = await fetch(`/api/person/${id}`, {method: 'DELETE' });
+                const response = await fetch(`/api/person/delete/${id}`, {method: 'DELETE' });
 
                 if (!response.ok) {
-                    const err = await response.json();
+                    const err = await response.json().catch(() => ({ error: 'Delete failed' }));
                     throw new Error(err.error || 'Delete failed');
                 }
                 loadPerson();
@@ -144,8 +147,8 @@
                 console.error('Error deleting person:', error);
                 alert("Error: " + error.message);
             }
-
         }
+
         document.addEventListener('DOMContentLoaded', loadPerson);
     </script>
 </body>
