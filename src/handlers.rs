@@ -5,23 +5,22 @@ use axum::{
     Json,
 };
 use crate::{db::Db, models::*}; // Import from models 
-
 use crate::error::AppError;
 
 // -- Person Handlers --
-pub async fn add_person(State(pool): State<Db>, Json(person): Json<Person>,) -> Result <impl IntoResponse, AppError> {
+pub async fn add_person(State(pool): State<Db>, Json(person): Json<NewPerson>,) -> Result <impl IntoResponse, AppError> {
     person.validate().map_err(AppError::InvalidData)?;
     
-    sqlx::query!("INSERT INTO persons (name, age) VALUES (?, ?)", 
+    let result= sqlx::query!("INSERT INTO persons (name, age) VALUES (?, ?)", 
         person.name,
         person.age)
         .execute(&pool)
         .await?;
-    Ok(StatusCode::CREATED)
+    Ok((StatusCode::CREATED, format!("Created person with id: {}", result.last_insert_rowid())))
 }
 
 pub async fn get_all_persons(State(pool): State<Db>) -> Result<Json<Vec<Person>>, AppError> {
-    let people = sqlx::query_as!(Person, "SELECT id as \"id!\", name as \"name!\", age as \"age!\" FROM persons")
+    let people = sqlx::query_as!(Person, "SELECT id, name, age FROM persons ORDER BY id")
         .fetch_all(&pool)
         .await?;
     Ok(Json(people))
@@ -29,14 +28,31 @@ pub async fn get_all_persons(State(pool): State<Db>) -> Result<Json<Vec<Person>>
 
 
 pub async fn update_person(State(pool): State<Db>, Path(id): Path<i64>, Json(update): Json<PersonUpdate>,) -> Result <impl IntoResponse, AppError> {
-    sqlx::query!(
-    "UPDATE persons SET name = COALESCE(?, name), age = COALESCE(?, age) WHERE id = ?",
-        update.name,
-        update.age,
-        id
-    )
-    .execute(&pool)
-    .await?;
+    let mut query = String::from("UPDATE persons SET ");
+    let mut params = Vec::new();
+
+    if let Some(name) = &update.name {
+        query.push_str("name = ?, ");
+        params.push(name.clone());
+    }
+
+    if let Some(age) = update.age {
+        query.push_str("age = ?, ");
+        params.push(age.to_string());
+    }
+
+    query = query.trim_end_matches(", ").to_string();
+    query.push_str(" WHERE id = ?");
+    params.push(id.to_string());
+
+    let result = sqlx::query(&query)
+        .execute(&pool)
+        .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::NotFound);
+    }
+    
     Ok(StatusCode::OK)
 }
 
