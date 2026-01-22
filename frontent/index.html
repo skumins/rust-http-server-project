@@ -5,7 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rust server</title>
     <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
 
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        button {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -13,8 +41,8 @@
         <h2>List of members</h2>
 
         <div class="form-group">
-            <input id="name" placeholder="Name">
-            <input id="age" type="number" placeholder="Age">
+            <input id="nameInput" placeholder="Name">
+            <input id="ageInput" type="number" placeholder="Age">
             <button class="btn-add" onclick="savePerson()">Save</button>
         </div>
 
@@ -35,60 +63,90 @@
         let editingID = null;
 
         async function loadPerson() {
-            const response = await fetch('/persons');
-            const persons = await response.json();
-            const tbody = document.querySelector('#persons-table tbody');
-            tbody.innerHTML = persons.map(p => `
-                <tr>
-                    <td>${p.id}</td>
-                    <td>${p.name}</td>
-                    <td>${p.age}</td>
-                    <td>
-                        <button class="btn-edit" onclick="editPerson(${p.id}, '${p.name}', ${p.age})">Edit</button>
-                        <button claass="btn-delete" onclick="deletePerson(${p.id})">Delete</button>
-                    </td>
-                </tr>
+            try {
+                const response = await fetch('/api/persons');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok')
+                }
+                const persons = await response.json();
+                const tbody = document.querySelector('#persons-table tbody');
+                tbody.innerHTML = persons.map(p => `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.name}</td>
+                        <td>${p.age}</td>
+                        <td>
+                            <button class="btn-edit" onclick="editPerson(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.age})">Edit</button>
+                            <button class="btn-delete" onclick="deletePerson(${p.id})">Delete</button>
+                        </td>
+                    </tr>
 
-            `).join('');
-        }
+                `).join('');
 
-        async function savePerson() {
-            const name = document.getElementById('nameInput').value;
-            const age = parseInt(document.getElementById('ageInput').value);
-
-            const url = editingID ? `/person/${editingID}` : '/person';
-            const method = editingID ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method: method,
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name, age})
-            });
-
-            if (response.ok) {
-                editingID = null;
-                document.getElementById('nameInput').value = '';
-                document.getElementById('ageInput').value = '';
-                loadPerson();
-            } else{
-                const err = await response.json();
-                alert("Error: " + err.error);
+            } catch (error) {
+                console.error('Error loading persons:', error);
+                alert('Error loading persons: ' + error.message);
             }
         }
 
-        function editMode(id, name, age) {
+        async function savePerson() {
+            const name = document.getElementById('nameInput').value.trim();
+            const age = parseInt(document.getElementById('ageInput').value);
+
+            if (!name || isNaN(age)){
+                alert('Please enter valid name and age');
+                return;
+            }
+
+            const url = editingID ? `/api/person/${editingID}` : '/api/person';
+            const method = editingID ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, age})
+                });
+            
+                if (response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Request failed');
+                    editingID = null;
+                    document.getElementById('nameInput').value = '';
+                    document.getElementById('ageInput').value = '';
+                    loadPerson();
+                }
+            } catch (error) {
+                console.error('Error saving person:', error);
+                alert("Error: " + error.message);
+            }
+        }
+
+        function editPerson(id, name, age) {
             editingID = id;
-            document.getElementById('nameInput').value = namt;
+            document.getElementById('nameInput').value = name;
             document.getElementById('ageInput').value = age;
             document.getElementById('nameInput').focus();
         }
 
-        async function deletePerson() {
+        async function deletePerson(id) {
             if (!confirm('Delete?')) return;
-            await fetch(`/person/${id}`, {method: 'DELETE' });
-            loadPerson();
+
+            try {
+                const response = await fetch(`/api/person/${id}`, {method: 'DELETE' });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Delete failed');
+                }
+                loadPerson();
+            } catch (error) {
+                console.error('Error deleting person:', error);
+                alert("Error: " + error.message);
+            }
+
         }
-        loadPerson();
+        document.addEventListener('DOMContentLoaded', loadPerson);
     </script>
 </body>
 </html>

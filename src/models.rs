@@ -44,9 +44,22 @@ impl Person {
         if self.name.trim().len() < 2 {
             return Err("The name is short, at least 2 characters are required".to_string());
         }
-        if self.age < 0 || self.age > 140 {
-            return Err("Age must be between 0 and 140".to_string());
+        if self.age < 0 || self.age > 120 {
+            return Err("Age must be between 0 and 120".to_string());
         }
         Ok(())
     }
 }
+
+impl NewPerson {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.name.trim().len() < 2 {
+            return Err("The name is short, at least 2 characters are required".to_string());
+        }
+        if self.age < 0 || self.age > 120 {
+            return Err("Age must be between 0 and 120".to_string());
+        }
+        Ok(())
+    }
+}
+
