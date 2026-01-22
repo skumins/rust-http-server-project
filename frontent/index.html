@@ -108,14 +108,14 @@
                     body: JSON.stringify({name, age})
                 });
             
-                if (response.ok) {
+                if (!response.ok) {
                     const err = await response.json();
                     throw new Error(err.error || 'Request failed');
-                    editingID = null;
-                    document.getElementById('nameInput').value = '';
-                    document.getElementById('ageInput').value = '';
-                    loadPerson();
                 }
+                editingID = null;
+                document.getElementById('nameInput').value = '';
+                document.getElementById('ageInput').value = '';
+                loadPerson();
             } catch (error) {
                 console.error('Error saving person:', error);
                 alert("Error: " + error.message);

@@ -18,7 +18,7 @@ async fn main() {
     let api_router = routes::create_router(db);
 
     let static_router = Router::new()
-    .nest_service("/", ServeDir::new("static"));
+    .nest_service("/", ServeDir::new("frontent"));
 
     let app = Router::new()
     .nest("/api", api_router).merge(static_router);
